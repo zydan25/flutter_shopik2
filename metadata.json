@@ -1,0 +1,6 @@
+{
+  "name": "شبيك",
+  "description": "تطبيق متجر شبيك للتسوق الإلكتروني وربط المتاجر والمنتجات والطلبات مع الخادم المباشر",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
