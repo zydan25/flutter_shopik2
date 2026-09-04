@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -72,6 +74,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
@@ -92,6 +95,9 @@ fun ProductDetailScreen(
     onVisitStore: (storeId: Int) -> Unit,
     onChatWithStore: () -> Unit,
     formatMoney: (Double) -> String,
+    relatedProducts: List<Product> = emptyList(),
+    onCategoryClick: (String) -> Unit = {},
+    onRelatedProductClick: (Product) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedImageIndex by remember { mutableStateOf(0) }
@@ -256,6 +262,88 @@ fun ProductDetailScreen(
                                         )
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2.5 Category Breadcrumb & Hierarchy Bar
+            item {
+                val categoryName = when (product.category) {
+                    "electronics" -> "إلكترونيات وأجهزة ذكية"
+                    "supermarket" -> "سوبرماركت ومواد غذائية"
+                    "fashion" -> "أزياء وموضة وملابس"
+                    "perfumes" -> "عطور ومستحضرات تجميل"
+                    "pharmacy" -> "صحة وصيدليات وعناية"
+                    "home" -> "منزل وديكور وأثاث"
+                    else -> "المنتجات والتصنيفات"
+                }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Icon(
+                                imageVector = categoryIcon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "الرئيسية",
+                                style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF64748B))
+                            )
+                            Text(text = "›", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                            Text(
+                                text = categoryName,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.clickable { onCategoryClick(product.category) }
+                            )
+                            if (product.subCategory.isNotBlank()) {
+                                Text(text = "›", style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray))
+                                Text(
+                                    text = product.subCategory,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF1E293B)
+                                    )
+                                )
+                            }
+                        }
+
+                        if (product.brand.isNotBlank()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(6.dp),
+                                shadowElevation = 1.dp
+                            ) {
+                                Text(
+                                    text = product.brand,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
                             }
                         }
                     }
@@ -590,6 +678,82 @@ fun ProductDetailScreen(
                 }
             }
 
+            // 7.5 Technical Specifications Matched with Category
+            if (product.specs.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.VerifiedUser,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "المواصفات الفنية المعتمدة للقسم :",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            product.specs.entries.forEachIndexed { index, (key, value) ->
+                                val isEven = index % 2 == 0
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            if (isEven) Color(0xFFF8FAFC) else Color.White,
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = key,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = Color(0xFF64748B),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                    Text(
+                                        text = value,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = Color(0xFF1E293B),
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+                                if (index < product.specs.size - 1) {
+                                    HorizontalDivider(color = Color(0xFFF1F5F9))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // 8. Store Info & Contact
             item {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -660,6 +824,115 @@ fun ProductDetailScreen(
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text("زيارة المتجر", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 9. Related Products in Same Category
+            if (relatedProducts.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "منتجات تندرج ضمن نفس القسم :",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "عرض المزيد",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.clickable { onCategoryClick(product.category) }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(relatedProducts) { relProduct ->
+                                Card(
+                                    modifier = Modifier
+                                        .width(160.dp)
+                                        .clickable { onRelatedProductClick(relProduct) },
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        val relCategoryIcon = when (relProduct.category) {
+                                            "electronics" -> Icons.Default.PhoneIphone
+                                            "supermarket" -> Icons.Default.ShoppingBasket
+                                            "fashion" -> Icons.Default.Checkroom
+                                            "perfumes" -> Icons.Default.Spa
+                                            "pharmacy" -> Icons.Default.LocalPharmacy
+                                            else -> Icons.Default.ShoppingBag
+                                        }
+                                        val relCategoryBg = when (relProduct.category) {
+                                            "electronics" -> Color(0xFFEFF6FF)
+                                            "supermarket" -> Color(0xFFF0FDF4)
+                                            "fashion" -> Color(0xFFFDF4FF)
+                                            "perfumes" -> Color(0xFFFFF1F2)
+                                            "pharmacy" -> Color(0xFFECFEFF)
+                                            else -> Color(0xFFF8FAFC)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(100.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(relCategoryBg),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = relCategoryIcon,
+                                                contentDescription = relProduct.name,
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                                modifier = Modifier.size(44.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        Text(
+                                            text = relProduct.name,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+
+                                        if (relProduct.subCategory.isNotBlank()) {
+                                            Text(
+                                                text = relProduct.subCategory,
+                                                style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF64748B)),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = "${formatMoney(relProduct.priceYer)} ر.ي",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

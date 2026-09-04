@@ -73,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.OrderChatMessage
+import com.example.data.model.OrderItemDetail
 import com.example.data.model.OrderReview
 import com.example.data.model.StoreOrder
 
@@ -312,6 +313,18 @@ fun OrderCardItem(
                     ),
                     maxLines = 2
                 )
+                val subCats = order.items.mapNotNull { it.subCategory.takeIf { s -> s.isNotBlank() } }.distinct()
+                if (subCats.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "الفئات: " + subCats.joinToString(" • "),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -380,6 +393,8 @@ fun OrderDetailScreen(
     onOpenChat: () -> Unit,
     onSubmitReview: (rating: Float, comment: String) -> Unit,
     formatMoney: (Double) -> String,
+    onOrderItemClick: ((OrderItemDetail) -> Unit)? = null,
+    onReorderItem: ((OrderItemDetail) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var reviewRating by remember { mutableFloatStateOf(order.rating ?: 5.0f) }
@@ -632,31 +647,142 @@ fun OrderDetailScreen(
                         )
                     } else {
                         order.items.forEach { item ->
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 8.dp)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.productName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+
+                                        // Category and Subcategory matching badges
+                                        Row(
+                                            modifier = Modifier.padding(top = 4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (item.category.isNotBlank()) {
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = item.category,
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            if (item.subCategory.isNotBlank()) {
+                                                Surface(
+                                                    color = Color(0xFFF1F5F9),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = item.subCategory,
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            color = Color(0xFF475569),
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Medium
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            if (item.storeName.isNotBlank() && item.storeName != order.storeName) {
+                                                Surface(
+                                                    color = Color(0xFFF8FAFC),
+                                                    shape = RoundedCornerShape(4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = item.storeName,
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            color = Color(0xFF64748B),
+                                                            fontSize = 9.sp
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "الكمية: ${item.quantity} × ${formatMoney(item.priceYer)} ر.ي",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        )
+                                    }
+
                                     Text(
-                                        text = item.productName,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                    Text(
-                                        text = "الكمية: ${item.quantity} × ${formatMoney(item.priceYer)} ر.ي",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "${formatMoney(item.priceYer * item.quantity)} ر.ي",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     )
                                 }
-                                Text(
-                                    text = "${formatMoney(item.priceYer * item.quantity)} ر.ي",
-                                    fontWeight = FontWeight.Bold
-                                )
+
+                                // Match Product Actions: View product detail & Reorder
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (onOrderItemClick != null) {
+                                        OutlinedButton(
+                                            onClick = { onOrderItemClick(item) },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Info,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("تفاصيل المنتج", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+
+                                    if (onReorderItem != null) {
+                                        Button(
+                                            onClick = { onReorderItem(item) },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ShoppingBag,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("إعادة طلب", style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         }
                     }
 

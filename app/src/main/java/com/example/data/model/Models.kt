@@ -28,6 +28,9 @@ data class Product(
     val priceYer: Double,
     val originalPriceYer: Double? = null,
     val category: String,
+    val subCategory: String = "",
+    val brand: String = "",
+    val specs: Map<String, String> = emptyMap(),
     val rating: Double = 4.8,
     val inStock: Boolean = true,
     val badge: String? = null,
@@ -52,7 +55,10 @@ data class CategoryItem(
     val id: String,
     val title: String,
     val iconName: String,
-    val productCount: Int
+    val productCount: Int,
+    val subCategories: List<String> = emptyList(),
+    val serverId: Int? = null,
+    val parentId: Int? = null
 )
 
 data class BannerItem(
@@ -92,10 +98,13 @@ data class WalletTransaction(
 )
 
 data class OrderItemDetail(
+    val productId: Int? = null,
     val productName: String,
     val quantity: Int,
     val priceYer: Double,
-    val category: String = ""
+    val category: String = "",
+    val subCategory: String = "",
+    val storeName: String = ""
 )
 
 data class OrderChatMessage(
@@ -146,7 +155,10 @@ data class UserSession(
     val phone: String,
     val fullName: String,
     val token: String? = null,
-    val isLoggedIn: Boolean = true
+    val isLoggedIn: Boolean = false,
+    val governorate: String = "",
+    val pointsBalance: Int = 0,
+    val role: String = "customer"
 )
 
 data class UserAddress(

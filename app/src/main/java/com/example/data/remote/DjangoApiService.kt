@@ -12,11 +12,17 @@ import retrofit2.http.Query
  */
 interface DjangoApiService {
 
-    // 1. Vendors (Stores)
+    // 1. Categories
+    @GET("categories/")
+    suspend fun getCategories(
+        @Query("page") page: Int? = null
+    ): Response<CategoryListResponse>
+
+    // 2. Vendors (Stores)
     @GET("vendors/")
     suspend fun getVendors(): Response<VendorResponse>
 
-    // 2. Products
+    // 3. Products
     @GET("products/")
     suspend fun getProducts(
         @Query("vendor") vendorId: Int? = null,
@@ -24,7 +30,7 @@ interface DjangoApiService {
         @Query("category") category: String? = null
     ): Response<ProductResponse>
 
-    // 3. Auth
+    // 4. Auth
     @POST("auth/login/")
     suspend fun login(
         @Body request: LoginPayload
@@ -32,7 +38,7 @@ interface DjangoApiService {
 
     @POST("auth/register/")
     suspend fun register(
-        @Body request: LoginPayload
+        @Body request: RegisterPayload
     ): Response<AuthLoginResponse>
 
     @GET("auth/me/")
@@ -40,7 +46,7 @@ interface DjangoApiService {
         @Header("Authorization") token: String
     ): Response<UserDto>
 
-    // 4. Orders
+    // 5. Orders
     @GET("orders/")
     suspend fun getOrders(
         @Header("Authorization") token: String

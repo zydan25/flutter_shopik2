@@ -190,11 +190,11 @@ fun AdminPortalScreen(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "${store.city} · ${store.category}",
+                                text = "${store.location} · ${store.category}",
                                 style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                             )
                             Text(
-                                text = "الهاتف: ${store.phone} · الرصيد: ${formatMoney(store.walletBalanceYer)} ر.ي",
+                                text = "الهاتف: ${store.phone} · الحد الأدنى: ${store.minOrder}",
                                 style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
                             )
                         }

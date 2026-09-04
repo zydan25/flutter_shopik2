@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -36,6 +39,8 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,16 +61,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.model.CategoryItem
 import com.example.data.model.Product
 
 /**
  * صفحة عرض جميع التصنيفات
- * مع تبويب في الأعلى للتنقل السريع بين التصنيفات وعرض منتجات التصنيف المختار
+ * مع تبويب في الأعلى للتنقل السريع بين التصنيفات وعرض منتجات التصنيف والفئات الفرعية
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,15 +89,17 @@ fun CategoriesScreen(
     onToggleFavorite: (Int) -> Unit,
     onBackClick: () -> Unit,
     formatMoney: (Double) -> String,
+    selectedSubCategory: String = "الكل",
+    onSelectSubCategory: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val filteredProducts = if (selectedCategory == "all") {
-        products
-    } else {
-        products.filter { it.category == selectedCategory }
-    }
-
     val selectedCategoryItem = categories.find { it.id == selectedCategory }
+
+    val filteredProducts = products.filter { prod ->
+        val matchesCat = selectedCategory == "all" || prod.category == selectedCategory
+        val matchesSubCat = selectedSubCategory == "الكل" || prod.subCategory.isBlank() || prod.subCategory == selectedSubCategory
+        matchesCat && matchesSubCat
+    }
 
     Column(
         modifier = modifier
@@ -120,7 +131,7 @@ fun CategoriesScreen(
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
 
-                IconButton(onClick = { /* Sort / Filter */ }) {
+                IconButton(onClick = { /* View grid options */ }) {
                     Icon(
                         imageVector = Icons.Default.GridView,
                         contentDescription = null,
@@ -130,7 +141,7 @@ fun CategoriesScreen(
             }
         }
 
-        // 2. Top Scrollable Tabs Bar for All Categories (مطلوب من المستخدم: تبويب في الأعلى للتصنيفات)
+        // 2. Top Scrollable Tabs Bar for All Categories
         ScrollableTabRow(
             selectedTabIndex = categories.indexOfFirst { it.id == selectedCategory }.coerceAtLeast(0),
             containerColor = MaterialTheme.colorScheme.surface,
@@ -166,6 +177,55 @@ fun CategoriesScreen(
             }
         }
 
+        // 2.5 Subcategory Filter Chips Row (مطابقة الفئات التي تندرج ضمنها المنتجات)
+        val subCategoriesList = selectedCategoryItem?.subCategories ?: emptyList()
+        if (subCategoriesList.isNotEmpty()) {
+            Surface(
+                color = Color.White,
+                shadowElevation = 1.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedSubCategory == "الكل",
+                            onClick = { onSelectSubCategory("الكل") },
+                            label = {
+                                Text(
+                                    "الكل",
+                                    fontWeight = if (selectedSubCategory == "الكل") FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                    items(subCategoriesList) { subCat ->
+                        val isSubSelected = selectedSubCategory == subCat
+                        FilterChip(
+                            selected = isSubSelected,
+                            onClick = { onSelectSubCategory(subCat) },
+                            label = {
+                                Text(
+                                    subCat,
+                                    fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
         // 3. Grid displaying Products and Category Banner
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -192,14 +252,15 @@ fun CategoriesScreen(
                     ) {
                         Column {
                             Text(
-                                text = "تصفح قسم: ${selectedCategoryItem?.title ?: "جميع المنتجات"}",
+                                text = "تصفح قسم: ${selectedCategoryItem?.title ?: "جميع المنتجات"}" +
+                                        if (selectedSubCategory != "الكل") " › $selectedSubCategory" else "",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             )
                             Text(
-                                text = "${filteredProducts.size} منتج معتمد بضمان الجودة",
+                                text = "${filteredProducts.size} منتج يندرج ضمن هذا القسم",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -251,6 +312,23 @@ fun CategoryGridProductCard(
     formatMoney: (Double) -> String,
     modifier: Modifier = Modifier
 ) {
+    val categoryIcon = when (product.category) {
+        "electronics" -> Icons.Default.PhoneIphone
+        "supermarket" -> Icons.Default.ShoppingBasket
+        "fashion" -> Icons.Default.Checkroom
+        "perfumes" -> Icons.Default.Spa
+        "pharmacy" -> Icons.Default.LocalPharmacy
+        else -> Icons.Default.GridView
+    }
+    val categoryBg = when (product.category) {
+        "electronics" -> Color(0xFFEFF6FF)
+        "supermarket" -> Color(0xFFF0FDF4)
+        "fashion" -> Color(0xFFFDF4FF)
+        "perfumes" -> Color(0xFFFFF1F2)
+        "pharmacy" -> Color(0xFFECFEFF)
+        else -> Color(0xFFF8FAFC)
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -260,24 +338,20 @@ fun CategoryGridProductCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            // Product image area with favorite button
+            // Product image area with favorite button and badge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(115.dp)
+                    .height(125.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0))
-                        )
-                    ),
+                    .background(categoryBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = getCategoryVectorIcon(product.category),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
+                    imageVector = categoryIcon,
+                    contentDescription = product.name,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                    modifier = Modifier.size(54.dp)
                 )
 
                 // Favorite button
@@ -285,14 +359,16 @@ fun CategoryGridProductCard(
                     onClick = onToggleFavorite,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(32.dp)
-                        .padding(2.dp)
+                        .padding(4.dp)
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.85f))
                 ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = null,
                         tint = if (isFavorite) Color.Red else Color.Gray,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
@@ -311,13 +387,59 @@ fun CategoryGridProductCard(
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             ),
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                         )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Subcategory & Brand tags
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (product.subCategory.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = product.subCategory,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (product.brand.isNotBlank()) {
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = product.brand,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color(0xFF475569),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = product.name,
@@ -326,7 +448,8 @@ fun CategoryGridProductCard(
                     fontSize = 13.sp
                 ),
                 maxLines = 2,
-                lineHeight = 17.sp
+                lineHeight = 17.sp,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(
@@ -335,7 +458,8 @@ fun CategoryGridProductCard(
                     color = Color.Gray,
                     fontSize = 11.sp
                 ),
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(6.dp))

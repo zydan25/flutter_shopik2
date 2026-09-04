@@ -57,10 +57,13 @@ import com.example.ui.DepositDialog
 import com.example.ui.DjangoSettingsDialog
 import com.example.ui.FavoritesScreen
 import com.example.ui.FeaturedStoresSection
+import com.example.ui.FullLoginScreen
+import com.example.ui.GamesScreen
 import com.example.ui.HeroBannersSlider
 import com.example.ui.JeebAccountScreen
 import com.example.ui.LoginWithPhoneDialog
 import com.example.ui.MainViewModel
+import com.example.ui.NetworkCardsScreen
 import com.example.ui.NotificationsDialog
 import com.example.ui.OrderChatScreen
 import com.example.ui.OrderDetailScreen
@@ -69,7 +72,10 @@ import com.example.ui.PaddingHeader
 import com.example.ui.PaymentNetworkScreen
 import com.example.ui.ProductCard
 import com.example.ui.ProductDetailScreen
+import com.example.ui.ProgramsScreen
+import com.example.ui.RegisterScreen
 import com.example.ui.ScreenTab
+import com.example.ui.ServicesScreen
 import com.example.ui.SplashScreen
 import com.example.ui.StoreChatDialog
 import com.example.ui.StoresScreen
@@ -129,6 +135,7 @@ fun MainAppScreen(
     val selectedOrderId by viewModel.selectedOrderId.collectAsState()
     val selectedChatOrderId by viewModel.selectedChatOrderId.collectAsState()
     val selectedProductDetail by viewModel.selectedProductDetail.collectAsState()
+    val selectedSubCategory by viewModel.selectedSubCategory.collectAsState()
     val activeStoreChat by viewModel.activeStoreChat.collectAsState()
     val storeChatMessages by viewModel.storeChatMessages.collectAsState()
 
@@ -154,6 +161,11 @@ fun MainAppScreen(
             selectedOrderId != null -> viewModel.closeOrderDetails()
             selectedProductDetail != null -> viewModel.closeProductDetail()
             selectedTab == ScreenTab.PAYMENT_NETWORK -> viewModel.selectTab(ScreenTab.ACCOUNT)
+            selectedTab == ScreenTab.SERVICES -> viewModel.selectTab(ScreenTab.ACCOUNT)
+            selectedTab == ScreenTab.NETWORK_CARDS -> viewModel.selectTab(ScreenTab.SERVICES)
+            selectedTab == ScreenTab.GAMES_CARDS -> viewModel.selectTab(ScreenTab.SERVICES)
+            selectedTab == ScreenTab.PROGRAMS_CARDS -> viewModel.selectTab(ScreenTab.SERVICES)
+            selectedTab == ScreenTab.LOGIN || selectedTab == ScreenTab.REGISTER -> viewModel.selectTab(ScreenTab.ACCOUNT)
             selectedTab == ScreenTab.PRODUCT_DETAIL -> viewModel.closeProductDetail()
             selectedTab == ScreenTab.CATEGORIES -> viewModel.selectTab(ScreenTab.HOME)
             selectedTab == ScreenTab.ORDERS -> viewModel.selectTab(ScreenTab.ACCOUNT)
@@ -182,9 +194,11 @@ fun MainAppScreen(
             }
         },
         bottomBar = {
-            // Don't show bottom bar if in active order chat, payment network, or product detail
+            // Don't show bottom bar if in active order chat, payment network, login/register, or product detail
             if (selectedChatOrderId == null &&
                 selectedTab != ScreenTab.PAYMENT_NETWORK &&
+                selectedTab != ScreenTab.LOGIN &&
+                selectedTab != ScreenTab.REGISTER &&
                 selectedTab != ScreenTab.PRODUCT_DETAIL &&
                 selectedProductDetail == null
             ) {
@@ -375,7 +389,8 @@ fun MainAppScreen(
                         orders = orders,
                         djangoUrl = djangoBaseUrl,
                         formatMoney = { viewModel.formatMoney(it) },
-                        onLoginClick = { viewModel.showLoginDialog.value = true },
+                        onLoginClick = { viewModel.selectTab(ScreenTab.LOGIN) },
+                        onRegisterClick = { viewModel.selectTab(ScreenTab.REGISTER) },
                         onLogoutClick = { viewModel.logout() },
                         onDepositClick = { viewModel.showDepositDialog.value = true },
                         onTransferClick = { viewModel.showTransferDialog.value = true },
@@ -385,6 +400,79 @@ fun MainAppScreen(
                         onSyncBalance = { viewModel.syncWalletBalance() },
                         onFeedAccountSubmit = { phone, amount, code ->
                             viewModel.feedWalletAccount(phone, amount, code)
+                        },
+                        onOpenServices = { viewModel.selectTab(ScreenTab.SERVICES) },
+                        onOpenNetworkCards = { viewModel.selectTab(ScreenTab.NETWORK_CARDS) },
+                        onOpenGames = { viewModel.selectTab(ScreenTab.GAMES_CARDS) },
+                        onOpenPrograms = { viewModel.selectTab(ScreenTab.PROGRAMS_CARDS) }
+                    )
+                }
+
+                ScreenTab.SERVICES -> {
+                    ServicesScreen(
+                        userSession = userSession,
+                        onBackClick = { viewModel.selectTab(ScreenTab.ACCOUNT) },
+                        onNavigateToNetworkCards = { viewModel.selectTab(ScreenTab.NETWORK_CARDS) },
+                        onNavigateToGames = { viewModel.selectTab(ScreenTab.GAMES_CARDS) },
+                        onNavigateToPrograms = { viewModel.selectTab(ScreenTab.PROGRAMS_CARDS) },
+                        formatMoney = { viewModel.formatMoney(it) },
+                        onPayBill = { billName, amount, accountNo ->
+                            viewModel.executeTelecomPayment(accountNo, "سداد خدمات", billName, "سداد فاتورة $billName", amount)
+                        }
+                    )
+                }
+
+                ScreenTab.NETWORK_CARDS -> {
+                    NetworkCardsScreen(
+                        userSession = userSession,
+                        onBackClick = { viewModel.selectTab(ScreenTab.SERVICES) },
+                        formatMoney = { viewModel.formatMoney(it) },
+                        onPurchaseCard = { cardName, price, targetPhone ->
+                            viewModel.executeTelecomPayment(targetPhone, "كروت وشبكات", "كروت شحن وباقات", cardName, price)
+                        }
+                    )
+                }
+
+                ScreenTab.GAMES_CARDS -> {
+                    GamesScreen(
+                        userSession = userSession,
+                        onBackClick = { viewModel.selectTab(ScreenTab.SERVICES) },
+                        formatMoney = { viewModel.formatMoney(it) },
+                        onRechargeGame = { gameName, packName, price, playerId ->
+                            viewModel.executeTelecomPayment(playerId, gameName, "شحن ألعاب", packName, price)
+                        }
+                    )
+                }
+
+                ScreenTab.PROGRAMS_CARDS -> {
+                    ProgramsScreen(
+                        userSession = userSession,
+                        onBackClick = { viewModel.selectTab(ScreenTab.SERVICES) },
+                        formatMoney = { viewModel.formatMoney(it) },
+                        onPurchaseProgram = { progName, planName, price, emailOrPhone ->
+                            viewModel.executeTelecomPayment(emailOrPhone, progName, "اشتراكات وبرامج", planName, price)
+                        }
+                    )
+                }
+
+                ScreenTab.LOGIN -> {
+                    FullLoginScreen(
+                        onBackClick = { viewModel.selectTab(ScreenTab.ACCOUNT) },
+                        onNavigateToRegister = { viewModel.selectTab(ScreenTab.REGISTER) },
+                        onLoginSuccess = { viewModel.selectTab(ScreenTab.ACCOUNT) },
+                        onLoginSubmit = { phone, password ->
+                            viewModel.login(phone, password)
+                        }
+                    )
+                }
+
+                ScreenTab.REGISTER -> {
+                    RegisterScreen(
+                        onBackClick = { viewModel.selectTab(ScreenTab.ACCOUNT) },
+                        onNavigateToLogin = { viewModel.selectTab(ScreenTab.LOGIN) },
+                        onRegisterSuccess = { viewModel.selectTab(ScreenTab.ACCOUNT) },
+                        onRegisterSubmit = { phone, pass, firstName, lastName, governorate ->
+                            viewModel.register(phone, pass, firstName, lastName, governorate)
                         }
                     )
                 }
@@ -396,6 +484,8 @@ fun MainAppScreen(
                         products = allProducts,
                         favorites = favorites,
                         onSelectCategory = { viewModel.selectCategory(it) },
+                        selectedSubCategory = selectedSubCategory,
+                        onSelectSubCategory = { viewModel.selectSubCategory(it) },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it) },
                         onToggleFavorite = { viewModel.toggleFavorite(it) },
@@ -444,6 +534,14 @@ fun MainAppScreen(
                                     viewModel.openStoreChat(st)
                                 }
                             },
+                            relatedProducts = viewModel.getRelatedProducts(currentProduct),
+                            onCategoryClick = { catId ->
+                                viewModel.closeProductDetail()
+                                viewModel.openCategories(catId)
+                            },
+                            onRelatedProductClick = { prod ->
+                                viewModel.openProductDetail(prod)
+                            },
                             formatMoney = { viewModel.formatMoney(it) }
                         )
                     } else {
@@ -478,6 +576,12 @@ fun MainAppScreen(
                                     onSubmitReview = { rating, comment ->
                                         viewModel.submitOrderReview(activeOrder.id, rating, comment)
                                     },
+                                    onOrderItemClick = { item ->
+                                        viewModel.openProductForOrderItem(item)
+                                    },
+                                    onReorderItem = { item ->
+                                        viewModel.reorderItem(item)
+                                    },
                                     formatMoney = { viewModel.formatMoney(it) }
                                 )
                             } else {
@@ -495,6 +599,16 @@ fun MainAppScreen(
                             )
                         }
                     }
+                }
+
+                else -> {
+                    HomeScreenBody(
+                        viewModel = viewModel,
+                        selectedCategory = selectedCategory,
+                        stores = stores,
+                        filteredProducts = filteredProducts,
+                        favorites = favorites
+                    )
                 }
             }
         }

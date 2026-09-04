@@ -140,6 +140,11 @@ fun JeebAccountScreen(
     onOpenVendorPortal: () -> Unit = {},
     onOpenAdminPortal: () -> Unit = {},
     onOpenTrends: () -> Unit = {},
+    onRegisterClick: () -> Unit = {},
+    onOpenServices: () -> Unit = {},
+    onOpenNetworkCards: () -> Unit = {},
+    onOpenGames: () -> Unit = {},
+    onOpenPrograms: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isBalanceVisible by remember { mutableStateOf(true) }
@@ -328,17 +333,44 @@ fun JeebAccountScreen(
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     }
 
-                    item {
-                        NavigationDrawerItem(
-                            icon = { Icon(Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                            label = { Text("تسجيل الخروج", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
-                            selected = false,
-                            onClick = {
-                                coroutineScope.launch { drawerState.close() }
-                                onLogoutClick()
-                            },
-                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                        )
+                    if (userSession.isLoggedIn) {
+                        item {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                                label = { Text("تسجيل الخروج", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+                                selected = false,
+                                onClick = {
+                                    coroutineScope.launch { drawerState.close() }
+                                    onLogoutClick()
+                                },
+                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                            )
+                        }
+                    } else {
+                        item {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Login, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                label = { Text("تسجيل الدخول", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) },
+                                selected = false,
+                                onClick = {
+                                    coroutineScope.launch { drawerState.close() }
+                                    onLoginClick()
+                                },
+                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                            )
+                        }
+                        item {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF2E7D32)) },
+                                label = { Text("إنشاء حساب جديد", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold) },
+                                selected = false,
+                                onClick = {
+                                    coroutineScope.launch { drawerState.close() }
+                                    onRegisterClick()
+                                },
+                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                            )
+                        }
                     }
                 }
             }
@@ -427,6 +459,119 @@ fun JeebAccountScreen(
                 }
             }
 
+            // 1.5 Login / Register banner when not logged in
+            if (!userSession.isLoggedIn) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Login,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "تسجيل الدخول أو إنشاء حساب",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "سجل حسابك للربط المباشر مع السيرفر والاطلاع على رصيدك الحقيقي ونقاطك",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = onLoginClick,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Text("تسجيل الدخول", fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = onRegisterClick,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("إنشاء حساب جديد", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                item {
+                    // User info banner showing real governorate and points
+                    Surface(
+                        color = Color(0xFFE8F5E9),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = "الحساب الموثق: ${userSession.fullName}",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+                                )
+                                Text(
+                                    text = "الهاتف: ${userSession.phone} • المحافظة: ${userSession.governorate.ifBlank { "صنعاء" }}",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF2E7D32))
+                                )
+                            }
+                            Surface(
+                                color = Color(0xFF2E7D32),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "${userSession.pointsBalance} نقطة ولاء",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // 2. Digital Account Card with Sync Button
             item {
                 DigitalAccountCard(
@@ -437,7 +582,7 @@ fun JeebAccountScreen(
                     onToggleVisibility = { isBalanceVisible = !isBalanceVisible },
                     onSyncBalance = onSyncBalance,
                     formatMoney = formatMoney,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
@@ -448,10 +593,10 @@ fun JeebAccountScreen(
                     ordersCount = orders.size,
                     onOpenReports = { showReportsDialog = true },
                     onOpenPaymentNetwork = onOpenPaymentNetwork,
-                    onOpenServices = { showDigitalServiceDialog = "الخدمات" },
-                    onOpenNetworkCards = { showDigitalServiceDialog = "كروت الشبكات" },
-                    onOpenGames = { showDigitalServiceDialog = "شحن الألعاب" },
-                    onOpenApps = { showDigitalServiceDialog = "شحن البرامج" },
+                    onOpenServices = onOpenServices,
+                    onOpenNetworkCards = onOpenNetworkCards,
+                    onOpenGames = onOpenGames,
+                    onOpenApps = onOpenPrograms,
                     onFeedAccountClick = { showFeedAccountModal = true },
                     onTransferClick = onTransferClick,
                     onOrdersClick = onOrdersClick

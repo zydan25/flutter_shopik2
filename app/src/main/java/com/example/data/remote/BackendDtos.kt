@@ -32,7 +32,19 @@ data class CategoryDto(
     @Json(name = "id") val id: Int,
     @Json(name = "name") val name: String,
     @Json(name = "slug") val slug: String? = null,
-    @Json(name = "image") val image: String? = null
+    @Json(name = "image") val image: String? = null,
+    @Json(name = "parent") val parent: Int? = null,
+    @Json(name = "is_active") val isActive: Boolean? = true,
+    @Json(name = "sort_order") val sortOrder: Int? = 0,
+    @Json(name = "children_count") val childrenCount: Int? = 0,
+    @Json(name = "products_count") val productsCount: Int? = 0
+)
+
+data class CategoryListResponse(
+    @Json(name = "count") val count: Int? = null,
+    @Json(name = "next") val next: String? = null,
+    @Json(name = "previous") val previous: String? = null,
+    @Json(name = "results") val results: List<CategoryDto> = emptyList()
 )
 
 data class ProductGalleryDto(
@@ -41,19 +53,49 @@ data class ProductGalleryDto(
     @Json(name = "is_primary") val isPrimary: Boolean? = false
 )
 
+data class ProductColorDto(
+    @Json(name = "name") val name: String? = null,
+    @Json(name = "hex") val hex: String? = null
+)
+
+data class ProductSizeDto(
+    @Json(name = "label") val label: String? = null,
+    @Json(name = "stock") val stock: Int? = 0
+)
+
+data class ProductVariantDto(
+    @Json(name = "id") val id: Int? = null,
+    @Json(name = "sku") val sku: String? = null,
+    @Json(name = "color") val color: String? = null,
+    @Json(name = "size") val size: String? = null,
+    @Json(name = "price_override") val priceOverride: String? = null,
+    @Json(name = "available_stock") val availableStock: Int? = 0,
+    @Json(name = "effective_price") val effectivePrice: Double? = null
+)
+
 data class ProductDto(
     @Json(name = "id") val id: Int,
     @Json(name = "name") val name: String,
     @Json(name = "slug") val slug: String? = null,
     @Json(name = "description") val description: String? = null,
+    @Json(name = "brand") val brand: String? = null,
+    @Json(name = "material") val material: String? = null,
+    @Json(name = "shipping_note") val shippingNote: String? = null,
+    @Json(name = "return_policy") val returnPolicy: String? = null,
     @Json(name = "price") val price: String? = null,
     @Json(name = "sale_price") val salePrice: String? = null,
     @Json(name = "effective_price") val effectivePrice: String? = null,
+    @Json(name = "discount_percent") val discountPercent: Int? = 0,
     @Json(name = "currency") val currency: String? = "YER",
     @Json(name = "stock") val stock: Int? = 0,
     @Json(name = "available_stock") val availableStock: Int? = 0,
     @Json(name = "main_image_url") val mainImageUrl: String? = null,
     @Json(name = "gallery") val gallery: List<ProductGalleryDto> = emptyList(),
+    @Json(name = "colors") val colors: List<ProductColorDto>? = emptyList(),
+    @Json(name = "sizes") val sizes: List<ProductSizeDto>? = emptyList(),
+    @Json(name = "hashtags") val hashtags: List<String>? = emptyList(),
+    @Json(name = "details") val details: Map<String, String>? = null,
+    @Json(name = "variants") val variants: List<ProductVariantDto>? = emptyList(),
     @Json(name = "vendor") val vendor: VendorDto? = null,
     @Json(name = "categories") val categories: List<CategoryDto> = emptyList(),
     @Json(name = "rating") val rating: String? = "0.00",
@@ -68,7 +110,7 @@ data class ProductResponse(
 
 data class OrderItemDto(
     @Json(name = "id") val id: Int? = null,
-    @Json(name = "product") val product: Any? = null,
+    @Json(name = "product_id") val productId: Int? = null,
     @Json(name = "product_name") val productName: String? = null,
     @Json(name = "product_image") val productImage: String? = null,
     @Json(name = "vendor_name") val vendorName: String? = null,
@@ -95,6 +137,20 @@ data class OrderResponse(
     @Json(name = "results") val results: List<OrderDto> = emptyList()
 )
 
+data class NotificationDto(
+    @Json(name = "id") val id: Int? = null,
+    @Json(name = "title") val title: String? = null,
+    @Json(name = "message") val message: String? = null,
+    @Json(name = "body") val body: String? = null,
+    @Json(name = "created_at") val createdAt: String? = null,
+    @Json(name = "is_read") val isRead: Boolean? = false
+)
+
+data class NotificationResponse(
+    @Json(name = "count") val count: Int? = null,
+    @Json(name = "results") val results: List<NotificationDto> = emptyList()
+)
+
 data class UserDto(
     @Json(name = "id") val id: Int,
     @Json(name = "phone") val phone: String,
@@ -108,6 +164,14 @@ data class UserDto(
 data class AuthLoginResponse(
     @Json(name = "token") val token: String,
     @Json(name = "user") val user: UserDto
+)
+
+data class RegisterPayload(
+    @Json(name = "phone") val phone: String,
+    @Json(name = "password") val password: String,
+    @Json(name = "first_name") val firstName: String? = null,
+    @Json(name = "last_name") val lastName: String? = null,
+    @Json(name = "governorate") val governorate: String? = null
 )
 
 data class CreateOrderItemRequest(
